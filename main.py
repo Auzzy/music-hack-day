@@ -1,21 +1,16 @@
 import re
 
+import discog
+import util
 import mwsiteext
 site = mwsiteext.Site("en.wikipedia.org")
+
+discog.set_site(site)
 
 class Discog(object):
 	def __init__(self, section, page):
 		self.section = section
 		self.page = page
-
-
-def get_section(page_name, section_name):
-	sections = site.parse_page(page_name, props=["sections"])["sections"]
-	section_title_map = {section["line"]:section["index"] for section in sections}
-	section_number = section_title_map.get(section_name, None)
-	if not section_number:
-		return None
-	return site.parse_page(page_name, section_number, props=["wikitext"])["wikitext"]["*"]
 
 def get_discog_page(artist_page_name, discogs_section):
 	expanded_discogs_section = site.expandtemplates(discogs_section, artist_page_name)
@@ -27,7 +22,7 @@ def get_discog_page(artist_page_name, discogs_section):
 	return site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]["*"]
 
 def get_discog_section(artist_page_name):
-	return get_section(artist_page_name, "Discography")
+	return util.get_section(artist_page_name, "Discography")
 
 def get_artist_discog_page(artist_page_name):
 	discogs_section = get_discog_section(artist_page_name)
@@ -70,11 +65,15 @@ def search_artist(artist_name):
 
 	discog = get_artist_discog_page(artist_page)
 	print discog.page
-	print discog.section
+	if discog.page:
+		discog.parse_discog_page(discog.page)
+	else:
+		discog.parse_discog_section(discog.section)
+
 	
 
 def query(artist_name, title_name):
 	search_artist(artist_name)
 
 if __name__=="__main__":
-	query("Depswa", "Two Angels and a Dream")
+	query("The Verve", "Bittersweet Symphony")
