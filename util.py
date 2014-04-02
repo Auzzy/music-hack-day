@@ -25,6 +25,7 @@ def get_sub_sections(site, title, text):
 	return {section["line"].lower():section["line"] for section in sections}
 
 
+
 if __name__=="__main__":
 	import mwsiteext
 	site = mwsiteext.Site("en.wikipedia.org")

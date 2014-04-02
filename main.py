@@ -19,7 +19,10 @@ def get_discog_page(artist_page_name, discogs_section):
 
 	template_re = re.search(r"(?P<template><div.*<\/div>)", expanded_discogs_section)
 	template_text = template_re.group("template")
-	return site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]["*"]
+	link_obj = site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]
+	if "exists" in link_obj:
+		return link_obj["*"]
+	# return site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]["*"]
 
 def get_discog_section(artist_page_name):
 	return util.get_section(artist_page_name, "Discography")
@@ -69,7 +72,6 @@ def search_artist(artist_name):
 		discog.parse_discog_page(discog.page)
 	else:
 		discog.parse_discog_section(discog.section)
-
 	
 
 def query(artist_name, title_name):

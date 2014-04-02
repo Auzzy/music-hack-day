@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import htmlutil
 import util
 
 SECTION_NAMES = ["albums", "singles"]
@@ -11,49 +12,35 @@ def extract_page_names(cells):
 			page_names.append(link["title"])
 	return page_names
 
-def parse_single_row_headers(headers, header_row):
-	cols = {header.string.lower():index for index,header in enumerate(headers)}
-	return cols,len(cols),header_row
-
-def parse_multi_row_headers(headers, header_row):
-	cols = {}
-	header_count = 0
+def get_headers(table):
+	headers = []
+	header_row = None
+	for row in table("tr"):
+		row_headers = row("th", scope="col")
+		if row_headers:
+			header_row = row
+			headers = row_headers
+	
+	header_text = []
 	for header in headers:
-		if "rowspan" in header.attrs:
-			cols[header.string.lower()] = header_count
-			header_count += 1
-		else:
-			sub_header_row = header_row.find_next_sibling("tr")
-			sub_headers = sub_header_row.find_all("th", scope="col")
-			header_count += len(sub_headers)
-	return cols,header_count,sub_header_row
+		for ref in header(class_="reference"):
+			ref.extract()
+		header_text.append(list(header.stripped_strings)[0])
+	cols = {header.lower():index for index,header in enumerate(header_text)}
 
-def is_multi_row_header(headers):
-	for header in headers:
-		if "rowspan" in header.attrs and header["rowspan"] != "1":
-			return True
-	return False
+	return cols,header_row
 
 def parse_table(table):
-	header_row = table.tr
-	headers = header_row("th", scope="col")
-	parse_headers = parse_multi_row_headers if is_multi_row_header(headers) else parse_single_row_headers
-	cols,header_count,final_header_row = parse_headers(headers, header_row)
-	
-	name_col = cols["title"]
-	name_cells = []
-	for row in final_header_row.find_next_siblings("tr"):
-		cells = row.find_all(["th", "td"])
-		if len(cells) == header_count:
-			name_cells.append(cells[name_col])
-	
+	expanded_table = htmlutil.expand_table(table)
+	cols,header_row = get_headers(expanded_table)
+	name_cells = [row(("th", "td"))[cols["title"]] for row in header_row.find_next_siblings("tr")]
 	return extract_page_names(name_cells)
 
 def parse_section(site, page_name, section_name):
 	section_html = util.get_section(site, page_name, section_name, output_wikitext=False).encode("utf-7")
 	section_soup = BeautifulSoup(section_html)
 	page_names = []
-	for table in section_soup.find_all("table"):
+	for table in section_soup("table"):
 		page_names.extend(parse_table(table))
 	return page_names
 
@@ -66,7 +53,7 @@ def parse_discog_page(site, page_name):
 	
 	return album_page_names
 
-def parse_discog_ssection(site, discog_section):
+def parse_discog_section(site, discog_section):
 	pass
 
 if __name__=="__main__":
