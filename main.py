@@ -1,9 +1,10 @@
 import re
 
 import discog
+import album
 import util
 import mwsiteext
-site = mwsiteext.Site("en.wikipedia.org")
+site = mwsiteext.Site()
 
 discog.set_site(site)
 
@@ -22,7 +23,6 @@ def get_discog_page(artist_page_name, discogs_section):
 	link_obj = site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]
 	if "exists" in link_obj:
 		return link_obj["*"]
-	# return site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]["*"]
 
 def get_discog_section(artist_page_name):
 	return util.get_section(artist_page_name, "Discography")
@@ -67,11 +67,13 @@ def search_artist(artist_name):
 	artist_page, discog_page, album_pages = filter_search_results(page_title_map, artist_name.lower())
 
 	discog = get_artist_discog_page(artist_page)
-	print discog.page
 	if discog.page:
-		discog.parse_discog_page(discog.page)
+		album_page_names = discog.parse_discog_page(discog.page)
 	else:
-		discog.parse_discog_section(discog.section)
+		album_page_names = discog.parse_discog_section(discog.section)
+	
+	for album_page_name in album_page_names:
+		album.parse_tracklist(album_page_name)
 	
 
 def query(artist_name, title_name):

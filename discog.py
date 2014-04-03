@@ -12,27 +12,9 @@ def extract_page_names(cells):
 			page_names.append(link["title"])
 	return page_names
 
-def get_headers(table):
-	headers = []
-	header_row = None
-	for row in table("tr"):
-		row_headers = row("th", scope="col")
-		if row_headers:
-			header_row = row
-			headers = row_headers
-	
-	header_text = []
-	for header in headers:
-		for ref in header(class_="reference"):
-			ref.extract()
-		header_text.append(list(header.stripped_strings)[0])
-	cols = {header.lower():index for index,header in enumerate(header_text)}
-
-	return cols,header_row
-
 def parse_table(table):
-	expanded_table = htmlutil.expand_table(table)
-	cols,header_row = get_headers(expanded_table)
+	table = htmlutil.expand_table(table)
+	cols,header_row = htmlutil.get_table_headers(table)
 	name_cells = [row(("th", "td"))[cols["title"]] for row in header_row.find_next_siblings("tr")]
 	return extract_page_names(name_cells)
 
@@ -58,7 +40,7 @@ def parse_discog_section(site, discog_section):
 
 if __name__=="__main__":
 	import mwsiteext
-	site = mwsiteext.Site("en.wikipedia.org")
+	site = mwsiteext.Site()
 	album_page_names = parse_discog_page(site, "The Verve discography")
 	for album_page_name in album_page_names:
 		print album_page_name

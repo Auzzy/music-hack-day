@@ -28,7 +28,7 @@ def get_sub_sections(site, title, text):
 
 if __name__=="__main__":
 	import mwsiteext
-	site = mwsiteext.Site("en.wikipedia.org")
+	site = mwsiteext.Site()
 
 	print get_sections(site, "The Verve discography")
 	album_section = get_section(site, "The Verve discography", "Albums").encode("utf-7")

@@ -43,6 +43,24 @@ def expand_table(table):
 	
 	return table
 
+def get_table_headers(table):
+	headers = []
+	header_row = None
+	for row in table("tr"):
+		row_headers = row("th", scope="col")
+		if row_headers:
+			header_row = row
+			headers = row_headers
+	
+	header_text = []
+	for header in headers:
+		for ref in header(class_="reference"):
+			ref.extract()
+		header_text.append(list(header.stripped_strings)[0])
+	cols = {header.lower():index for index,header in enumerate(header_text)}
+
+	return cols,header_row
+
 if __name__ == "__main__":
 	table_html = BeautifulSoup(open(r"C:\Users\Auzzy\Desktop\singles.html", 'r').read())
 	print expand_table(table_html.table)

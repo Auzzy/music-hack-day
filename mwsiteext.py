@@ -1,6 +1,9 @@
 import mwclient
 
 class Site(mwclient.Site):
+	def __init__(self, host="en.wikipedia.org", *args, **kwargs):
+		super(Site, self).__init__(host, *args, **kwargs)
+
 	def _parse(self, *props, **kwargs):
 		props_str = '|'.join(props)
 		return self.api("parse", prop=props_str, **kwargs)["parse"]
