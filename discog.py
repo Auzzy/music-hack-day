@@ -3,6 +3,7 @@ import htmlutil
 import util
 
 SECTION_NAMES = ["albums", "singles"]
+TITLE_COLS = ["title", "album details", "song"]
 
 def extract_page_names(cells):
 	page_names = []
@@ -12,11 +13,23 @@ def extract_page_names(cells):
 			page_names.append(link["title"])
 	return page_names
 
+def _find_title_column_index(cols):
+	title_col_index = None
+	for title_col in TITLE_COLS:
+		if title_col in cols:
+			return cols[title_col]
+	return None
+
 def parse_table(table):
 	table = htmlutil.expand_table(table)
 	cols,header_row = htmlutil.get_table_headers(table)
-	name_cells = [row(("th", "td"))[cols["title"]] for row in header_row.find_next_siblings("tr")]
-	return extract_page_names(name_cells)
+	title_col_index = _find_title_column_index(cols)
+
+	page_names = []
+	if title_col_index:
+		name_cells = [row(("th", "td"))[title_col_index] for row in header_row.find_next_siblings("tr")]
+		page_names = extract_page_names(name_cells)
+	return page_names
 
 def parse_section(site, page_name, section_name):
 	section_html = util.get_section(site, page_name, section_name, output_wikitext=False).encode("utf-7")
@@ -37,10 +50,3 @@ def parse_discog_page(site, page_name):
 
 def parse_discog_section(site, discog_section):
 	pass
-
-if __name__=="__main__":
-	import mwsiteext
-	site = mwsiteext.Site()
-	album_page_names = parse_discog_page(site, "The Verve discography")
-	for album_page_name in album_page_names:
-		print album_page_name
