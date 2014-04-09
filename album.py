@@ -5,9 +5,20 @@ from bs4 import BeautifulSoup
 import util
 import htmlutil
 
+QUOTED_RE = re.compile("\"(?P<quoted>.*?)\"")
+LENGTH_RE = re.compile("\d?\d[:.][0-5]\d")
+
+def _remove_length(track_name):
+	split_text = track_name.rsplit('-', 1)
+	if len(split_text) == 1:
+		return track_name
+	
+	name,length = split_text
+	return name.strip() if LENGTH_RE.search(length) else track_name
+
 def _get_quoted_text(cell):
 	text = ''.join(cell.stripped_strings)
-	quoted_re = re.search("\"(?P<quoted>.*?)\"", text)
+	quoted_re = QUOTED_RE.search(text)
 	return quoted_re.group("quoted") if quoted_re else None
 
 def _extract_text(cells):
@@ -25,6 +36,7 @@ def _extract_text(cells):
 		link = container.find("a")
 		container = link if link else container
 		track_name = list(container.stripped_strings)[0]
+		track_name = _remove_length(track_name)
 		track_names.append(track_name)
 	return track_names
 
@@ -40,7 +52,6 @@ def _is_length(row):
 
 	"""
 	return row.td.div and row.td.div.string.startswith("Total length")
-	# return row.td.get_text("", strip=True).startswith("Total length")
 
 def _find_title_column_index(cols):
 	title_col_index = None
@@ -78,19 +89,25 @@ def parse_tracklist_section(section):
 			track_list.update(track_names)
 	return track_list
 
-def parse_tracklist(site, page_name):
+def _get_track_listing_section(site, page_name):
 	track_section_html = util.get_section(site, page_name, "Track listing", False)
-	track_section = BeautifulSoup(track_section_html)
+	return track_section_html or util.get_section(site, page_name, "Track listings", False)
 
-	tracklist_tables = track_section("table", class_="tracklist")
+def parse_tracklist(site, page_name):
 	tracks = set()
-	if tracklist_tables:
-		for tracklist_table in tracklist_tables:
-			tracks.update(parse_tracklist_table(tracklist_table))
-	else:
-		track_section_markup = util.get_section(site, page_name, "Track listing")
-		subsection_names = util.get_sub_sections(site, page_name, track_section_markup)
-		for subsection_name in subsection_names:
-			subsection_html = util.get_sub_section(site, page_name, track_section_markup, subsection_names[subsection_name], False)
-			tracks.update(parse_tracklist_section(BeautifulSoup(subsection_html)))
+	track_section_html = _get_track_listing_section(site, page_name)
+	if track_section_html:
+		track_section = BeautifulSoup(track_section_html)
+
+		tracklist_tables = track_section("table", class_="tracklist")
+		if tracklist_tables:
+			for tracklist_table in tracklist_tables:
+				tracks.update(parse_tracklist_table(tracklist_table))
+		else:
+			track_section_markup = util.get_section(site, page_name, "Track listing")
+			subsection_names = util.get_sub_sections(site, page_name, track_section_markup)
+			for subsection_name in subsection_names:
+				subsection_html = util.get_sub_section(site, page_name, track_section_markup, subsection_names[subsection_name], False)
+				tracks.update(parse_tracklist_section(BeautifulSoup(subsection_html)))
+	
 	return tracks

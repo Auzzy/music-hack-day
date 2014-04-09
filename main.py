@@ -1,37 +1,28 @@
 import re
 
+import artist
 import discog
 import album
 import util
 import mwsiteext
-site = mwsiteext.Site()
 
-discog.set_site(site)
+def parse_pages(site, artist_page, discog_page, album_pages):
+	print "ARTIST PAGE: " + artist_page
+	discog_section = None
+	if not discog_page:
+		discog_section,discog_page = artist.parse_artist_page(site, artist_page)
+	album_page_names = discog.parse_discog(site, discog_section, discog_page)
+	album_page_names.update(album_pages)
+	
+	tracks = set()
+	for album_page_name in album_page_names:
+		print "ALBUM PAGE NAME: " + album_page_name.encode('utf-8')
+		tracks.update(album.parse_tracklist(site, album_page_name))
+	
+	print "TRACKS"
+	for track in sorted(tracks):
+		print track
 
-class Discog(object):
-	def __init__(self, section, page):
-		self.section = section
-		self.page = page
-
-def get_discog_page(artist_page_name, discogs_section):
-	expanded_discogs_section = site.expandtemplates(discogs_section, artist_page_name)
-	if expanded_discogs_section == discogs_section:
-		return None
-
-	template_re = re.search(r"(?P<template><div.*<\/div>)", expanded_discogs_section)
-	template_text = template_re.group("template")
-	link_obj = site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]
-	if "exists" in link_obj:
-		return link_obj["*"]
-
-def get_discog_section(artist_page_name):
-	return util.get_section(artist_page_name, "Discography")
-
-def get_artist_discog_page(artist_page_name):
-	discogs_section = get_discog_section(artist_page_name)
-	if discogs_section:
-		discogs_page = get_discog_page(artist_page_name, discogs_section)
-		return Discog(discogs_section, discogs_page)
 
 def filter_album_pages(page_title_map, artist_name):
 	def search(title, search_strs):
@@ -59,25 +50,13 @@ def filter_search_results(page_title_map, artist_name):
 	album_pages = filter_album_pages(page_title_map, artist_name)
 	return artist_page, discog_page, album_pages
 
-def search_artist(artist_name):
+def search_artist(site, artist_name):
 	query = "intitle:{artist}".format(artist=artist_name)
 	page_titles = [result["title"] for result in site.search(query, what="text")]
 	page_title_map = {title.lower():title for title in page_titles}
-	
-	artist_page, discog_page, album_pages = filter_search_results(page_title_map, artist_name.lower())
-
-	discog = get_artist_discog_page(artist_page)
-	if discog.page:
-		album_page_names = discog.parse_discog_page(discog.page)
-	else:
-		album_page_names = discog.parse_discog_section(discog.section)
-	
-	for album_page_name in album_page_names:
-		album.parse_tracklist(album_page_name)
-	
+	return filter_search_results(page_title_map, artist_name.lower())
 
 def query(artist_name, title_name):
-	search_artist(artist_name)
-
-if __name__=="__main__":
-	query("The Verve", "Bittersweet Symphony")
+	site = mwsiteext.Site()
+	artist_page, discog_page, album_pages = search_artist(site, artist_name)
+	parse_pages(site, artist_page, discog_page, album_pages)
