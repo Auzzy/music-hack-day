@@ -3,6 +3,7 @@ import htmlutil
 import util
 
 SECTION_NAMES = ["albums", "singles"]
+SUB_SECTIONS_EXCLUDE = ["video albums"]
 TITLE_COLS = ["title", "song", "album details"]
 
 def _extract_page_names(cells):
@@ -40,7 +41,7 @@ def _parse_section(site, page_name, section_name):
 	return page_names
 
 def parse_discog_page(site, page_name):
-	sections = util.get_sections(site, page_name)
+	sections = util.map_section_names(site, page_name)
 	album_page_names = []
 	for section_name in SECTION_NAMES:
 		if section_name in sections:

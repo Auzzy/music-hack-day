@@ -7,15 +7,22 @@ class Site(mwclient.Site):
 	def _parse(self, *props, **kwargs):
 		props_str = '|'.join(props)
 		return self.api("parse", prop=props_str, **kwargs)["parse"]
-
-	def parse_text(self, title, text, section=None, props=[]):
-		kwargs = dict(title=title, text=text)
+	
+	def _parse_base(self, section, props, **kwargs):
 		if section:
 			kwargs["section"] = section
-		return self._parse(*props, **kwargs)
+		if not props:
+			props.append("text")
+		
+		result = self._parse(*props, **kwargs)
 
-	def parse_page(self, page, section=None, props=[]):
-		kwargs = dict(page=page)
-		if section:
-			kwargs["section"] = section
-		return self._parse(*props, **kwargs)
+		if len(props) == 1 and props[0] in ["text", "wikitext"]:
+			return result[props[0]]['*']
+		else:
+			return result
+
+	def parse_text(self, page_name, text, section=None, props=[]):
+		return self._parse_base(section, props, title=page_name, text=text)
+
+	def parse_page(self, page_name, section=None, props=[]):
+		return self._parse_base(section, props, page=page_name)

@@ -8,6 +8,8 @@ import htmlutil
 QUOTED_RE = re.compile("\"(?P<quoted>.*?)\"")
 LENGTH_RE = re.compile("\d?\d[:.][0-5]\d")
 
+VIDEO_STRINGS = ["dvd", "vhs", "video"]
+
 def _remove_length(track_name):
 	split_text = track_name.rsplit('-', 1)
 	if len(split_text) == 1:
@@ -36,6 +38,7 @@ def _extract_text(cells):
 		link = container.find("a")
 		container = link if link else container
 		track_name = list(container.stripped_strings)[0]
+		# track_name = container.get_text()
 		track_name = _remove_length(track_name)
 		track_names.append(track_name)
 	return track_names
@@ -89,25 +92,43 @@ def parse_tracklist_section(section):
 			track_list.update(track_names)
 	return track_list
 
+def _is_video(section_name):
+	for video_str in VIDEO_STRINGS:
+		if video_str in section_name:
+			return True
+	return False
+
+def prepare_tracklist_section(site, page_name, track_section_markup):
+	sub_section_names = util.map_sub_section_names(site, page_name, track_section_markup)
+	for sub_section_name in sub_section_names.keys()[:]:
+		if _is_video(sub_section_name):
+			video_section = util.get_sub_section(site, page_name, track_section_markup, sub_section_names[sub_section_name])
+			if video_section:
+				video_section_start = track_section_markup.index(video_section)
+				track_section_markup = track_section_markup[:video_section_start] + track_section_markup[video_section_start + len(video_section):]
+				del sub_section_names[sub_section_name]
+	return track_section_markup,sub_section_names
+
 def _get_track_listing_section(site, page_name):
-	track_section_html = util.get_section(site, page_name, "Track listing", False)
-	return track_section_html or util.get_section(site, page_name, "Track listings", False)
+	section_name = util.find_section_name(site, page_name, ["track listing", "track listings"])
+	section_text = util.get_section(site, page_name, section_name) if section_name else None
+	return section_name, section_text
 
 def parse_tracklist(site, page_name):
 	tracks = set()
-	track_section_html = _get_track_listing_section(site, page_name)
-	if track_section_html:
+	track_section_name,track_section_text = _get_track_listing_section(site, page_name)
+	if track_section_text:
+		track_section_markup,sub_section_names = prepare_tracklist_section(site, page_name, track_section_text)
+		
+		track_section_html = site.parse_text(page_name, track_section_markup)
 		track_section = BeautifulSoup(track_section_html)
-
 		tracklist_tables = track_section("table", class_="tracklist")
 		if tracklist_tables:
 			for tracklist_table in tracklist_tables:
 				tracks.update(parse_tracklist_table(tracklist_table))
 		else:
-			track_section_markup = util.get_section(site, page_name, "Track listing")
-			subsection_names = util.get_sub_sections(site, page_name, track_section_markup)
-			for subsection_name in subsection_names:
-				subsection_html = util.get_sub_section(site, page_name, track_section_markup, subsection_names[subsection_name], False)
-				tracks.update(parse_tracklist_section(BeautifulSoup(subsection_html)))
+			for sub_section_name in sub_section_names:
+				sub_section_html = util.get_sub_section(site, page_name, track_section_markup, sub_section_names[sub_section_name], False)
+				tracks.update(parse_tracklist_section(BeautifulSoup(sub_section_html)))
 	
 	return tracks
