@@ -9,9 +9,9 @@ TITLE_COLS = ["title", "song", "album details"]
 def _extract_page_names(cells):
 	page_names = []
 	for cell in cells:
-		link = cell.find("a")
-		if link and "title" in link.attrs:
-			page_names.append(link["title"])
+		links = cell("a")
+		if links:
+			page_names.extend([link["title"] for link in links if "title" in link.attrs])
 	return page_names
 
 def _find_title_column_index(cols):
@@ -48,15 +48,17 @@ def parse_discog_page(site, page_name):
 			album_page_names.extend(_parse_section(site, page_name, sections[section_name]))
 	return album_page_names
 
-def parse_discog_section(site, discog_section):
-	pass
+def parse_discog_section(site, artist_page, discog_section):
+	print artist_page
+	page_names = _parse_section(site, artist_page, "Discography")
+	if not page_names:
+		pass
+	return page_names
 
-def parse_discog(site, discog_section, discog_page):
+def parse_discog(site, artist_page, discog_section, discog_page):
 	album_pages = []
 	if discog_page:
-		print "DISCOG PAGE: " + discog_page
 		album_pages = parse_discog_page(site, discog_page)
 	else:
-		print "DISCOG_SECTION"
-		album_pages = parse_discog_section(site, discog_section)
+		album_pages = parse_discog_section(site, artist_page, discog_section)
 	return set(album_pages)

@@ -8,7 +8,26 @@ def _parse_text_func(site, page_name, section_text):
 		return site.parse_text(page_name, section_text, *args, **kwargs)
 	return parse
 
+def _get_nameless_section(parse_func, output_wikitext):
+	wikitext = parse_func(props=["wikitext"])
+	sections = parse_func(props=["sections"])["sections"]
+	if len(sections) == 1 :
+		section_end = len(wikitext)
+	else:
+		section_end = sections[0]["byteoffset"] if sections[0]["byteoffset"] != 0 else sections[1]["byteoffset"]
+	section_wikitext = wikitext[:section_end]
+	if output_wikitext:
+		return section_wikitext
+	else:
+		# TODO: This doesn't work right now, since I don't have access to site or page_name, and I need t parse
+		# this wikitext. It might help for me to use contentmodel instead of title for parse_text
+		return parse_func(props=["text"])
+
+
 def _get(parse_func, section_name, output_wikitext):
+	if not section_name:
+		return _get_nameless_section(parse_func, output_wikitext)
+
 	sections = parse_func(props=["sections"])["sections"]
 	section_title_map = {section["line"]:section["index"] for section in sections}
 	section_number = section_title_map.get(section_name, None)

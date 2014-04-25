@@ -12,10 +12,12 @@ def _get_discog_page_name(site, artist_page_name, discogs_section):
 		return None
 
 	template_re = TEMPLATE_RE.search(expanded_discogs_section)
-	template_text = template_re.group("template")
-	link_obj = site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]
-	if "exists" in link_obj:
-		return link_obj["*"]
+	if template_re:
+		template_text = template_re.group("template")
+		link_obj = site.parse_text(artist_page_name, template_text, props=["links"])["links"][0]
+		if "exists" in link_obj:
+			return link_obj["*"]
+	return None
 
 def _get_discog_section(site, artist_page_name):
 	return util.get_section(site, artist_page_name, "Discography")

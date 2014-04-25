@@ -38,7 +38,6 @@ def _extract_text(cells):
 		link = container.find("a")
 		container = link if link else container
 		track_name = list(container.stripped_strings)[0]
-		# track_name = container.get_text()
 		track_name = _remove_length(track_name)
 		track_names.append(track_name)
 	return track_names
@@ -55,13 +54,6 @@ def _is_length(row):
 
 	"""
 	return row.td.div and row.td.div.string.startswith("Total length")
-
-def _find_title_column_index(cols):
-	title_col_index = None
-	for title_col in TITLE_COLS:
-		if title_col in cols:
-			return cols[title_col]
-	return None
 
 def parse_tracklist_table(tracklist_table):
 	"""
