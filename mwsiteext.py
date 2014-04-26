@@ -21,8 +21,8 @@ class Site(mwclient.Site):
 		else:
 			return result
 
-	def parse_text(self, page_name, text, section=None, props=[]):
-		return self._parse_base(section, props, title=page_name, text=text)
+	def parse_text(self, text, section=None, props=[]):
+		return self._parse_base(section, props, text=text, contentmodel="wikitext")
 
 	def parse_page(self, page_name, section=None, props=[]):
 		return self._parse_base(section, props, page=page_name)

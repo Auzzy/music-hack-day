@@ -23,7 +23,7 @@ def parse_pages(site, artist_page, discog_page, album_pages):
 		
 		print "TRACKS"
 		for track in sorted(tracks):
-			print track
+			print track.encode('utf-8')
 
 
 def filter_album_pages(page_title_map, artist_name):

@@ -90,11 +90,11 @@ def _is_video(section_name):
 			return True
 	return False
 
-def prepare_tracklist_section(site, page_name, track_section_markup):
-	sub_section_names = util.map_sub_section_names(site, page_name, track_section_markup)
+def prepare_tracklist_section(site, track_section_markup):
+	sub_section_names = util.map_sub_section_names(site, track_section_markup)
 	for sub_section_name in sub_section_names.keys()[:]:
 		if _is_video(sub_section_name):
-			video_section = util.get_sub_section(site, page_name, track_section_markup, sub_section_names[sub_section_name])
+			video_section = util.get_sub_section(site, track_section_markup, sub_section_names[sub_section_name])
 			if video_section:
 				video_section_start = track_section_markup.index(video_section)
 				track_section_markup = track_section_markup[:video_section_start] + track_section_markup[video_section_start + len(video_section):]
@@ -110,9 +110,9 @@ def parse_tracklist(site, page_name):
 	tracks = set()
 	track_section_name,track_section_text = _get_track_listing_section(site, page_name)
 	if track_section_text:
-		track_section_markup,sub_section_names = prepare_tracklist_section(site, page_name, track_section_text)
+		track_section_markup,sub_section_names = prepare_tracklist_section(site, track_section_text)
 		
-		track_section_html = site.parse_text(page_name, track_section_markup)
+		track_section_html = site.parse_text(track_section_markup)
 		track_section = BeautifulSoup(track_section_html)
 		tracklist_tables = track_section("table", class_="tracklist")
 		if tracklist_tables:
@@ -120,7 +120,7 @@ def parse_tracklist(site, page_name):
 				tracks.update(parse_tracklist_table(tracklist_table))
 		else:
 			for sub_section_name in sub_section_names:
-				sub_section_html = util.get_sub_section(site, page_name, track_section_markup, sub_section_names[sub_section_name], False)
+				sub_section_html = util.get_sub_section(site, track_section_markup, sub_section_names[sub_section_name], False)
 				tracks.update(parse_tracklist_section(BeautifulSoup(sub_section_html)))
 	
 	return tracks
