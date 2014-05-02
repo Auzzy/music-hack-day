@@ -7,16 +7,17 @@ import htmlutil
 
 QUOTED_RE = re.compile("\"(?P<quoted>.*?)\"")
 LENGTH_RE = re.compile("\d?\d[:.][0-5]\d")
+END_LENGTH_RE = re.compile("{0}$".format(LENGTH_RE.pattern))
 
 VIDEO_STRINGS = ["dvd", "vhs", "video"]
 
 def _remove_length(track_name):
 	split_text = track_name.rsplit('-', 1)
-	if len(split_text) == 1:
-		return track_name
-	
-	name,length = split_text
-	return name.strip() if LENGTH_RE.search(length) else track_name
+	if len(split_text) > 1:
+		name,length = split_text
+		if LENGTH_RE.search(length):
+			return name.strip()
+	return END_LENGTH_RE.sub("", track_name.strip())
 
 def _get_quoted_text(cell):
 	text = ''.join(cell.stripped_strings)
@@ -38,6 +39,7 @@ def _extract_text(cells):
 		link = container.find("a")
 		container = link if link else container
 		track_name = list(container.stripped_strings)[0]
+		track_name = track_name.replace('\u2013', '-')
 		track_name = _remove_length(track_name)
 		track_names.append(track_name)
 	return track_names
@@ -121,6 +123,7 @@ def parse_tracklist(site, page_name):
 		else:
 			for sub_section_name in sub_section_names:
 				sub_section_html = util.get_sub_section(site, track_section_markup, sub_section_names[sub_section_name], False)
+				sub_section_html = sub_section_html.replace(u'\u2013', '-')
 				tracks.update(parse_tracklist_section(BeautifulSoup(sub_section_html)))
 	
 	return tracks

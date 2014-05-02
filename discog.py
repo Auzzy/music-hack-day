@@ -6,12 +6,35 @@ SECTION_NAMES = ["albums", "singles"]
 SUB_SECTIONS_EXCLUDE = ["video albums"]
 TITLE_COLS = ["title", "song", "album details"]
 
+# One of a couple ways to tell a link is broken in HTML. Additionally, href will
+# be "/w/index.php?title=<title>&amp;action=edit&amp;redlink=1", and the page
+# title will have " (page does not exist)" appended
+BROKEN_LINK_CLASS = "new"
+CITATION_NEEDED = "citation needed"
+HELP_PAGE = "help page"
+EDIT = "edit"
+
+def _is_broken(link):
+	return "class" in link.attrs and BROKEN_LINK_CLASS in link["class"]
+
+def _citation_needed(link):
+	return link.string == CITATION_NEEDED
+
+def _is_help(link):
+	return link.string == HELP_PAGE
+
+def _is_edit(link):
+	return link.string == EDIT
+
+def _is_special(link):
+	return _is_edit(link) or _is_help(link) or _citation_needed(link)
+
 def _extract_page_names(cells):
 	page_names = []
 	for cell in cells:
-		links = cell("a")
+		links = cell("a", title=True)
 		if links:
-			page_names.extend([link["title"] for link in links if "title" in link.attrs])
+			page_names.extend([link["title"] for link in links if not _is_broken(link)])
 	return page_names
 
 def _find_title_column_index(cols):
@@ -33,7 +56,7 @@ def _parse_table(table):
 	return page_names
 
 def _parse_section(site, page_name, section_name):
-	section_html = util.get_section(site, page_name, section_name, output_wikitext=False)
+	section_html = util.get_section(site, page_name, section_name, False)
 	section_soup = BeautifulSoup(section_html)
 	page_names = []
 	for table in section_soup("table"):
@@ -49,10 +72,11 @@ def parse_discog_page(site, page_name):
 	return album_page_names
 
 def parse_discog_section(site, artist_page, discog_section):
-	print artist_page
 	page_names = _parse_section(site, artist_page, "Discography")
 	if not page_names:
-		pass
+		discog_section_html = site.parse_text(discog_section, False)
+		discog_section_soup = BeautifulSoup(discog_section_html)
+		page_names = [link["title"] for link in discog_section_soup("a", title=True) if not _is_broken(link) and not _is_special(link)]
 	return page_names
 
 def parse_discog(site, artist_page, discog_section, discog_page):

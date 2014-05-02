@@ -41,12 +41,10 @@ def filter_album_pages(page_title_map, artist_name):
 
 def filter_discog_page(page_title_map, artist_name):
 	discog_name = "{artist} discography".format(artist=artist_name)
-	# return page_title_map[discog_name] if discog_name in page_title_map else None
 	return page_title_map.get(discog_name)
 
 def filter_artist_page(page_title_map, artist_name):
 	band_name = "{artist} (band)".format(artist=artist_name)
-	# return page_title_map[artist_name] if artist_name in page_title_map else None
 	return page_title_map[band_name] if band_name in page_title_map else page_title_map.get(artist_name)
 
 def filter_search_results(page_title_map, artist_name):

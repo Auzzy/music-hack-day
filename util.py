@@ -44,7 +44,6 @@ def _get(parse_func, section_name, output_wikitext):
 
 def _get_names(parse_func):
 	sections = parse_func(props=["sections"])["sections"]
-	# return {section["line"].lower():section["line"] for section in sections if section["byteoffset"] != 0}
 	names_dict = {}
 	for section in sections:
 		names_dict[section["line"].lower()] = _NAMELESS if section["byteoffset"] == 0 else section["line"]
@@ -64,6 +63,8 @@ def _lookup_names(parse_func, names):
 		if name in page_names:
 			names_dict[name] = page_names[name]
 	return names_dict
+
+
 
 
 def get_section(site, page_name, section_name, output_wikitext=True):
