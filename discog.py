@@ -48,7 +48,7 @@ def _parse_table(table):
 	table = htmlutil.expand_table(table)
 	cols,header_row = htmlutil.get_table_headers(table)
 	title_col_index = _find_title_column_index(cols)
-
+	
 	page_names = []
 	if title_col_index is not None:
 		name_cells = [row(("th", "td"))[title_col_index] for row in header_row.find_next_siblings("tr")]

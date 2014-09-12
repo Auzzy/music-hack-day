@@ -28,6 +28,11 @@ def _handle_colspan(root, cell, cols):
 		cell.insert_after(cell_copy)
 
 def expand_table(table):
+	if table("tbody"):
+		tbody = table.tbody.extract()
+		for row in tbody:
+			table.append(row)
+	
 	root = list(table.parents)[-1]
 	for row in table:
 		colnum = 0
