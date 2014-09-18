@@ -1,10 +1,17 @@
+import re
+
 from bs4 import BeautifulSoup
+
 import htmlutil
 import util
 
 SECTION_NAMES = ["albums", "singles"]
 SUB_SECTIONS_EXCLUDE = ["video albums"]
-TITLE_COLS = ["title", "song", "album details"]
+TITLE_COLS = ["title", "song", "album details", "single/ep"]
+
+_HTML_TAG = "[^<]*?(?:\\<[^>]+?\\>[^<]*?)*"
+QUOTED_REGEX = "(?:{tag})?[^\"]*?\\\"(?P<quoted>{tag})\\\".*".format(tag=_HTML_TAG)
+QUOTED_RE = re.compile(QUOTED_REGEX)
 
 # One of a couple ways to tell a link is broken in HTML. Additionally, href will
 # be "/w/index.php?title=<title>&amp;action=edit&amp;redlink=1", and the page
@@ -29,12 +36,49 @@ def _is_edit(link):
 def _is_special(link):
 	return _is_edit(link) or _is_help(link) or _citation_needed(link)
 
+
+def _match_quoted(tag):
+	result = QUOTED_RE.match(str(tag))
+	return (result.group("quoted"),result.start("quoted")) if result else (None,len(str(tag)))
+
+def _find_album_element(cell):
+	max_index = len(str(cell))
+	
+	quoted, quoted_start = _match_quoted(cell)
+	quoted_container = BeautifulSoup(quoted) if quoted else quoted
+	# quoted_start = str(cell).find(str(quoted)) if quoted else max_index
+	# print quoted_container
+	
+	italic = cell.find(("i", "b", "em", "strong"))
+	italic_start = str(cell).index(str(italic)) if italic else max_index
+	link = cell.find("a", title=True)
+	link_start = str(cell).index(str(link)) if link else max_index
+	if link:
+		link_start = str(cell).index(str(link))
+		link_container = BeautifulSoup().new_tag("div")
+		link.wrap(link_container)
+	else:
+		link_start = max_index
+		link_container = link
+	
+	# Finds the first occurrance of eithe rquoted, italic, or linked text. This
+	# is most likely to be the album name.
+	album_element = min((quoted_container, quoted_start), (italic, italic_start), (link_container, link_start), key=lambda arg: arg[1])
+	return album_element[0]
+
 def _extract_page_names(cells):
 	page_names = []
 	for cell in cells:
-		links = cell("a", title=True)
-		if links:
-			page_names.extend([link["title"] for link in links if not _is_broken(link)])
+		album_element = _find_album_element(cell)
+		link = album_element.find("a", title=True)
+		if link and not _is_broken(link):
+			page_names.append(link["title"])
+		
+		'''
+		link = cell.find("a", title=True)
+		if link and not _is_broken(link):
+			page_names.append(link["title"])
+		'''
 	return page_names
 
 def _find_title_column_index(cols):
@@ -45,7 +89,7 @@ def _find_title_column_index(cols):
 	return None
 
 def _parse_table(table):
-	table = htmlutil.expand_table(table)
+	table = htmlutil.normalize_table(table)
 	cols,header_row = htmlutil.get_table_headers(table)
 	title_col_index = _find_title_column_index(cols)
 	

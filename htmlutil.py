@@ -27,11 +27,20 @@ def _handle_colspan(root, cell, cols):
 		cell_copy = _copy_tag(root, cell)
 		cell.insert_after(cell_copy)
 
-def expand_table(table):
+def normalize_table(table):
+	# Some versions of BeautifulSoup seem to inject this tbody tag and some
+	# don't. This flattens its rows into the tap-level table if it's present.
 	if table("tbody"):
 		tbody = table.tbody.extract()
 		for row in tbody:
 			table.append(row)
+	
+	# It can be assumed the first row of a table is a header row. This ensures
+	# it uses header (th) tags.
+	if not table("th"):
+		first_row = table.find_next("tr")
+		for cell in first_row("td"):
+			cell.name = "th"
 	
 	root = list(table.parents)[-1]
 	for row in table:
@@ -54,18 +63,22 @@ def get_table_headers(table):
 
 	headers = []
 	header_row = None
-	for row in table("tr"):
-		# row_headers = row("th", scope="col")
-		row_headers = row(th_scope)
-		if row_headers:
-			header_row = row
-			headers = row_headers
 	
-	header_text = []
+	if table("th"):
+		for row in table("tr"):
+			# row_headers = row("th", scope="col")
+			row_headers = row(th_scope)
+			if row_headers:
+				header_row = row
+				headers = row_headers
+	else:
+		pass
+	
+	headers_text = []
 	for header in headers:
 		for ref in header(class_="reference"):
 			ref.extract()
-		header_text.append(list(header.stripped_strings)[0])
-	cols = {header.lower():index for index,header in enumerate(header_text)}
+		headers_text.append(list(header.stripped_strings)[0])
+	cols = {header_text.lower():index for index,header_text in enumerate(headers_text)}
 
 	return cols,header_row
